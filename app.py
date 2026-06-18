@@ -44,9 +44,14 @@ st.markdown("""
 .filter-label { font-size:0.7rem; color:#6666aa !important; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
 .stat-pill { display:inline-block; background:#1a1a2e; border:1px solid #2a2a4a;
     border-radius:20px; padding:4px 12px; font-size:0.72rem; color:#8888cc; margin:3px 0; }
-.stTabs [data-baseweb="tab-list"] { background:#0d0d1a; border-radius:12px; padding:5px 6px; gap:4px; border:1px solid #1e1e3a; }
-.stTabs [data-baseweb="tab"] { background:transparent; color:#555577; border-radius:8px; padding:8px 18px; font-size:0.82rem; font-weight:500; border:none !important; }
-.stTabs [aria-selected="true"] { background:#06C167 !important; color:#000 !important; font-weight:700 !important; }
+.stTabs [data-baseweb="tab-list"] { background:#1a1a2e; border-radius:12px; padding:5px 6px; gap:4px; border:1px solid #2a2a4a; }
+.stTabs [data-baseweb="tab"] { background:#1a1a2e !important; color:#aaaacc !important; border-radius:8px !important; padding:8px 18px !important; font-size:0.85rem !important; font-weight:500 !important; border:none !important; }
+.stTabs [data-baseweb="tab"]:hover { background:#2a2a4a !important; color:#ffffff !important; }
+.stTabs [aria-selected="true"] { background:#06C167 !important; color:#000000 !important; font-weight:700 !important; }
+.stTabs [aria-selected="true"] p { color:#000000 !important; }
+.stTabs [data-baseweb="tab"] p { color:#aaaacc !important; }
+.stTabs [data-baseweb="tab-highlight"] { background: transparent !important; }
+.stTabs [data-baseweb="tab-border"] { display: none !important; }
 .stMultiSelect [data-baseweb="tag"] { background:#1a1a3a !important; color:#8888ff !important; border:1px solid #3333aa !important; border-radius:6px !important; }
 .stMultiSelect [data-baseweb="select"] > div { background:#0d0d1a !important; border:1px solid #2a2a4a !important; border-radius:10px !important; color:white !important; }
 hr { border-color:#1e1e3a !important; margin:1rem 0 !important; }
