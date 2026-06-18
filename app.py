@@ -3,91 +3,157 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-st.set_page_config(page_title="NCR Ride Analytics", page_icon="🚗", layout="wide")
+st.set_page_config(page_title="NCR Rides Analytics", page_icon="🚗", layout="wide")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-* { font-family: 'Inter', sans-serif; }
-[data-testid="stAppViewContainer"] { background: #0a0a0f; }
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg,#0d0d1a 0%,#111122 100%);
-    border-right: 1px solid #1e1e3a;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+* { font-family: 'Inter', sans-serif !important; box-sizing: border-box; }
+[data-testid="stAppViewContainer"] { background:#0b0c14; }
+[data-testid="stSidebar"] { display:none; }
+.block-container { padding:0 !important; max-width:100% !important; }
+header[data-testid="stHeader"] { display:none; }
+
+/* ── TOP NAV ── */
+.top-nav {
+    background:#0f1018;
+    border-bottom:1px solid #1c1f2e;
+    padding:14px 28px;
+    display:flex; align-items:center; justify-content:space-between;
 }
-[data-testid="stSidebar"] * { color: #e0e0ff !important; }
-.block-container { padding: 1rem 2rem 2rem 2rem; }
-.kpi-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; margin: 1rem 0; }
-.kpi-card { background:#0d0d1a; border:1px solid #1e1e3a; border-radius:14px; padding:1rem 1.1rem; position:relative; overflow:hidden; }
-.kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:14px 14px 0 0; }
-.kpi-card.green::before  { background:#06C167; }
-.kpi-card.blue::before   { background:#1FBAD6; }
-.kpi-card.purple::before { background:#A259FF; }
-.kpi-card.orange::before { background:#FF6B35; }
-.kpi-card.yellow::before { background:#FFD166; }
-.kpi-card.red::before    { background:#EF233C; }
-.kpi-label { font-size:0.7rem; color:#6666aa; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; }
-.kpi-value { font-size:1.5rem; font-weight:700; line-height:1.1; }
-.kpi-value.green  { color:#06C167; }
-.kpi-value.blue   { color:#1FBAD6; }
-.kpi-value.purple { color:#A259FF; }
-.kpi-value.orange { color:#FF6B35; }
-.kpi-value.yellow { color:#FFD166; }
-.kpi-value.red    { color:#EF233C; }
-.kpi-sub { font-size:0.68rem; color:#444466; margin-top:4px; }
-.page-title { font-size:1.6rem; font-weight:700; color:#ffffff; margin-bottom:2px; }
-.page-subtitle { font-size:0.82rem; color:#555577; margin-bottom:0.5rem; }
-.section-header { font-size:0.78rem; font-weight:600; color:#4444aa; text-transform:uppercase;
-    letter-spacing:0.1em; margin:1.5rem 0 0.8rem 0; padding-bottom:6px; border-bottom:1px solid #1e1e3a; }
-.sidebar-brand { font-size:1.1rem; font-weight:700; color:#06C167 !important; display:block; margin-bottom:4px; }
-.sidebar-sub { font-size:0.75rem; color:#444466 !important; margin-bottom:1rem; }
-.filter-label { font-size:0.7rem; color:#6666aa !important; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
-.stat-pill { display:inline-block; background:#1a1a2e; border:1px solid #2a2a4a;
-    border-radius:20px; padding:4px 12px; font-size:0.72rem; color:#8888cc; margin:3px 0; }
-.stTabs [data-baseweb="tab-list"] { background:#1a1a2e; border-radius:12px; padding:5px 6px; gap:4px; border:1px solid #2a2a4a; }
-.stTabs [data-baseweb="tab"] { background:#1a1a2e !important; color:#aaaacc !important; border-radius:8px !important; padding:8px 18px !important; font-size:0.85rem !important; font-weight:500 !important; border:none !important; }
-.stTabs [data-baseweb="tab"]:hover { background:#2a2a4a !important; color:#ffffff !important; }
-.stTabs [aria-selected="true"] { background:#06C167 !important; color:#000000 !important; font-weight:700 !important; }
-.stTabs [aria-selected="true"] p { color:#000000 !important; }
-.stTabs [data-baseweb="tab"] p { color:#aaaacc !important; }
-.stTabs [data-baseweb="tab-highlight"] { background: transparent !important; }
-.stTabs [data-baseweb="tab-border"] { display: none !important; }
-.stMultiSelect [data-baseweb="tag"] { background:#1a1a3a !important; color:#8888ff !important; border:1px solid #3333aa !important; border-radius:6px !important; }
-.stMultiSelect [data-baseweb="select"] > div { background:#0d0d1a !important; border:1px solid #2a2a4a !important; border-radius:10px !important; color:white !important; }
-hr { border-color:#1e1e3a !important; margin:1rem 0 !important; }
-p, span { color:#cccccc; }
-[data-testid="metric-container"] { display:none; }
+.nav-brand { font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:-0.02em; }
+.nav-brand span { color:#06C167; font-style:italic; }
+.nav-meta { font-size:0.78rem; color:#555577; display:flex; align-items:center; gap:16px; }
+.nav-badge {
+    background:#0d2d1e; border:1px solid #06C167;
+    color:#06C167; padding:4px 12px; border-radius:20px;
+    font-size:0.72rem; font-weight:600; letter-spacing:0.03em;
+    display:flex; align-items:center; gap:5px;
+}
+.nav-dot { width:7px; height:7px; background:#06C167; border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+    background:#0f1018; border-bottom:1px solid #1c1f2e;
+    padding:10px 28px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.filter-group { display:flex; align-items:center; gap:8px; }
+.filter-label { font-size:0.65rem; font-weight:600; color:#444466;
+    text-transform:uppercase; letter-spacing:0.1em; white-space:nowrap; }
+.filter-pills { display:flex; gap:6px; flex-wrap:wrap; }
+.pill {
+    padding:5px 14px; border-radius:20px; font-size:0.75rem; font-weight:500;
+    cursor:pointer; border:1px solid #2a2a4a; background:#13141f; color:#8888bb;
+    transition:all 0.15s ease; white-space:nowrap;
+}
+.pill.active { background:#06C167; color:#000; border-color:#06C167; font-weight:700; }
+.pill.active-status { border-color:currentColor; }
+.records-bar {
+    background:#0f1018; border-bottom:1px solid #1c1f2e;
+    padding:7px 28px; text-align:right;
+    font-size:0.75rem; color:#444466;
+}
+.records-bar b { color:#06C167; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+    font-size:0.65rem; font-weight:700; color:#333355;
+    text-transform:uppercase; letter-spacing:0.15em;
+    padding:20px 28px 10px 28px; display:flex; align-items:center; gap:12px;
+}
+.section-label::after { content:''; flex:1; height:1px; background:#1c1f2e; }
+
+/* ── KPI CARDS ── */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:#1c1f2e; margin:0 28px 1px 28px; border-radius:16px; overflow:hidden; }
+.kpi-card {
+    background:#0f1018; padding:22px 24px; position:relative; overflow:hidden;
+}
+.kpi-card::after {
+    content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+}
+.kpi-card.c1::after { background:linear-gradient(90deg,#1FBAD6,transparent); }
+.kpi-card.c2::after { background:linear-gradient(90deg,#06C167,transparent); }
+.kpi-card.c3::after { background:linear-gradient(90deg,#FFD166,transparent); }
+.kpi-card.c4::after { background:linear-gradient(90deg,#EF233C,transparent); }
+.kpi-card.c5::after { background:linear-gradient(90deg,#A259FF,transparent); }
+.kpi-card.c6::after { background:linear-gradient(90deg,#FF6B35,transparent); }
+.kpi-card.c7::after { background:linear-gradient(90deg,#F72585,transparent); }
+.kpi-card.c8::after { background:linear-gradient(90deg,#4CC9F0,transparent); }
+.kpi-icon { font-size:1.4rem; margin-bottom:10px; display:block; }
+.kpi-title { font-size:0.63rem; font-weight:600; color:#444466;
+    text-transform:uppercase; letter-spacing:0.12em; margin-bottom:6px; }
+.kpi-val { font-size:1.9rem; font-weight:800; line-height:1; margin-bottom:4px; }
+.kpi-val.c1 { color:#1FBAD6; } .kpi-val.c2 { color:#06C167; }
+.kpi-val.c3 { color:#FFD166; } .kpi-val.c4 { color:#EF233C; }
+.kpi-val.c5 { color:#A259FF; } .kpi-val.c6 { color:#FF6B35; }
+.kpi-val.c7 { color:#F72585; } .kpi-val.c8 { color:#4CC9F0; }
+.kpi-sub { font-size:0.68rem; color:#333355; }
+.kpi-bar { height:2px; background:#1c1f2e; margin-top:14px; border-radius:2px; overflow:hidden; }
+.kpi-bar-fill { height:100%; border-radius:2px; }
+
+/* ── CHART AREA ── */
+.chart-grid { display:grid; gap:1px; background:#1c1f2e; margin:0 28px 28px 28px; border-radius:16px; overflow:hidden; }
+.chart-grid.cols2 { grid-template-columns:1fr 1fr; }
+.chart-grid.cols3 { grid-template-columns:2fr 1fr; }
+.chart-box { background:#0f1018; padding:20px; }
+.chart-title { font-size:0.88rem; font-weight:700; color:#ccccee; margin-bottom:2px; }
+.chart-sub { font-size:0.7rem; color:#333355; margin-bottom:0; }
+
+/* ── TABS ── */
+.stTabs [data-baseweb="tab-list"] {
+    background:#0f1018 !important; gap:2px !important;
+    border-bottom:1px solid #1c1f2e !important; padding:0 28px !important;
+    border-radius:0 !important;
+}
+.stTabs [data-baseweb="tab"] {
+    background:transparent !important; color:#555577 !important;
+    border-radius:0 !important; padding:12px 20px !important;
+    font-size:0.82rem !important; font-weight:500 !important;
+    border:none !important; border-bottom:2px solid transparent !important;
+}
+.stTabs [data-baseweb="tab"] p { color:#888899 !important; font-size:0.82rem !important; }
+.stTabs [aria-selected="true"] {
+    background:transparent !important; color:#ffffff !important;
+    border-bottom:2px solid #06C167 !important; font-weight:700 !important;
+}
+.stTabs [aria-selected="true"] p { color:#ffffff !important; font-weight:700 !important; }
+.stTabs [data-baseweb="tab-highlight"] { display:none !important; }
+.stTabs [data-baseweb="tab-border"] { display:none !important; }
+.stTabs [data-baseweb="tab-panel"] { padding:0 !important; }
+
+/* ── DATAFRAME ── */
+[data-testid="stDataFrame"] { border-radius:12px; overflow:hidden; }
+iframe { border-radius:12px; }
 </style>
 """, unsafe_allow_html=True)
 
-COLORS = ['#06C167','#1FBAD6','#FF6B35','#A259FF','#FFD166','#EF233C','#4CC9F0']
+# ── COLORS & CHART THEME ────────────────────────────────────
+C = ['#06C167','#1FBAD6','#FF6B35','#A259FF','#FFD166','#EF233C','#4CC9F0','#F72585']
 
-def dark_layout(title="", height=350):
+def mk(title="", height=340):
     return dict(
-        plot_bgcolor='#0d0d1a', paper_bgcolor='#0a0a0f',
-        font=dict(color='#8888aa', family='Inter'),
-        title=dict(text=title, font=dict(color='#ccccee', size=13)),
-        xaxis=dict(gridcolor='#1a1a2e', showgrid=True, color='#555577',
-                   linecolor='#1e1e3a', tickfont=dict(size=11)),
-        yaxis=dict(gridcolor='#1a1a2e', showgrid=True, color='#555577',
-                   linecolor='#1e1e3a', tickfont=dict(size=11)),
-        legend=dict(bgcolor='#0d0d1a', bordercolor='#1e1e3a', borderwidth=1,
-                    font=dict(color='#8888cc')),
-        margin=dict(t=45, b=40, l=45, r=20),
-        hoverlabel=dict(bgcolor='#1a1a2e', bordercolor='#3333aa',
-                        font=dict(color='white', size=12)),
+        plot_bgcolor='#0f1018', paper_bgcolor='#0f1018',
+        font=dict(color='#666688', family='Inter', size=11),
+        title=dict(text="", font=dict(color='#ccccee', size=13)),
+        xaxis=dict(gridcolor='#1a1a2a', showgrid=True, color='#444466',
+                   linecolor='#1c1f2e', tickfont=dict(size=10, color='#555577')),
+        yaxis=dict(gridcolor='#1a1a2a', showgrid=True, color='#444466',
+                   linecolor='#1c1f2e', tickfont=dict(size=10, color='#555577')),
+        legend=dict(bgcolor='rgba(0,0,0,0)', borderwidth=0,
+                    font=dict(color='#888899', size=10)),
+        margin=dict(t=20, b=36, l=50, r=16),
+        hoverlabel=dict(bgcolor='#1a1a2e', bordercolor='#2a2a4a',
+                        font=dict(color='white', size=11, family='Inter')),
         height=height
     )
 
-def kpi(label, value, color, sub=""):
-    return f"""<div class="kpi-card {color}">
-      <div class="kpi-label">{label}</div>
-      <div class="kpi-value {color}">{value}</div>
-      <div class="kpi-sub">{sub}</div>
-    </div>"""
-
+# ── LOAD DATA ───────────────────────────────────────────────
 @st.cache_data
-def load_data():
+def load():
     df = pd.read_csv("ncr_ride_bookings.csv")
     df['Date']      = pd.to_datetime(df['Date'])
     df['Hour']      = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.hour
@@ -97,30 +163,43 @@ def load_data():
     df['Quarter']   = 'Q' + df['Date'].dt.quarter.astype(str)
     return df
 
-df = load_data()
-MONTH_ORDER = ['January','February','March','April','May','June',
-               'July','August','September','October','November','December']
-DAY_ORDER   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+df = load()
+MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+MO_FULL = ['January','February','March','April','May','June',
+           'July','August','September','October','November','December']
+DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+VEHICLES = ['All'] + sorted(df['Vehicle Type'].dropna().unique())
+STATUSES = {
+    'All':'All','Completed':'Completed','Driver Cancel':'Cancelled by Driver',
+    'Cust Cancel':'Cancelled by Customer','No Driver':'No Driver Found','Incomplete':'Incomplete'
+}
 
-# ── SIDEBAR ──────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown('<span class="sidebar-brand">🚗 NCR Ride Analytics</span>', unsafe_allow_html=True)
-    st.markdown('<span class="sidebar-sub">National Capital Region • 2024</span>', unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown('<p class="filter-label">Vehicle Type</p>', unsafe_allow_html=True)
-    all_v = sorted(df['Vehicle Type'].dropna().unique())
-    sel_v = st.multiselect("", all_v, default=all_v, key="veh", label_visibility="collapsed")
-    st.markdown('<p class="filter-label">Month</p>', unsafe_allow_html=True)
-    all_m = [m for m in MONTH_ORDER if m in df['Month'].unique()]
-    sel_m = st.multiselect("", all_m, default=all_m, key="mon", label_visibility="collapsed")
-    st.markdown('<p class="filter-label">Booking Status</p>', unsafe_allow_html=True)
-    all_s = sorted(df['Booking Status'].dropna().unique())
-    sel_s = st.multiselect("", all_s, default=all_s, key="stat", label_visibility="collapsed")
-    st.markdown("---")
+# ── TOP NAV ─────────────────────────────────────────────────
+st.markdown("""
+<div class="top-nav">
+  <div class="nav-brand">NCR Rides <span>Analytics</span></div>
+  <div class="nav-meta">
+    <span>Jan 2024 – Dec 2024 &nbsp;·&nbsp; 150,000 bookings</span>
+    <div class="nav-badge"><div class="nav-dot"></div> Interactive Filters Active</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
-# ── FILTER ────────────────────────────────────────────────────
-fd   = df[df['Vehicle Type'].isin(sel_v) & df['Month'].isin(sel_m) & df['Booking Status'].isin(sel_s)].copy()
-fd_c = fd[fd['Booking Status'] == 'Completed'].copy()
+# ── FILTER BAR ──────────────────────────────────────────────
+col_v, col_s = st.columns([3,2])
+with col_v:
+    sel_v = st.selectbox("VEHICLE", VEHICLES, index=0, label_visibility="visible", key="veh")
+with col_s:
+    sel_s = st.selectbox("STATUS", list(STATUSES.keys()), index=0, label_visibility="visible", key="stat")
+
+# ── FILTER DATA ─────────────────────────────────────────────
+fd = df.copy()
+if sel_v != 'All':
+    fd = fd[fd['Vehicle Type'] == sel_v]
+if sel_s != 'All':
+    fd = fd[fd['Booking Status'] == STATUSES[sel_s]]
+
+fd_c = fd[fd['Booking Status'] == 'Completed']
 
 total       = len(fd)
 completed   = len(fd_c)
@@ -129,291 +208,381 @@ revenue     = fd_c['Booking Value'].sum() if completed else 0
 avg_fare    = fd_c['Booking Value'].mean() if completed else 0
 cancelled   = fd['Booking Status'].str.startswith('Cancelled').sum()
 cancel_rate = cancelled / total * 100 if total else 0
-avg_rating  = fd_c['Driver Ratings'].mean() if completed else 0
+avg_dr      = fd_c['Driver Ratings'].mean() if completed else 0
+avg_cr      = fd_c['Customer Rating'].mean() if completed else 0
 avg_dist    = fd_c['Ride Distance'].mean() if completed else 0
-avg_cust_rat= fd_c['Customer Rating'].mean() if completed else 0
 avg_vtat    = fd['Avg VTAT'].mean() if total else 0
 avg_ctat    = fd_c['Avg CTAT'].mean() if completed else 0
 
-with st.sidebar:
-    st.markdown(f'<div class="stat-pill">📋 {total:,} bookings</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="stat-pill">✅ {completed:,} completed</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="stat-pill">💰 ₹{revenue/1e6:.2f}M revenue</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="stat-pill">⭐ {avg_rating:.2f} avg rating</div>', unsafe_allow_html=True)
+st.markdown(f"**Showing {total:,} records** — Vehicle: `{sel_v}` | Status: `{sel_s}`")
+st.markdown("---")
 
-# ── TABS ──────────────────────────────────────────────────────
-t1, t2, t3, t4, t5 = st.tabs(["📊 Overview","⏰ Time","🚗 Vehicles","❌ Cancellations","⭐ Ratings"])
+# ── TABS ────────────────────────────────────────────────────
+t1,t2,t3,t4,t5 = st.tabs(["📊 Overview","⏰ Time Analysis","🚗 Vehicles & Routes","❌ Cancellations","⭐ Ratings & Wait"])
 
-# ════ TAB 1 — OVERVIEW ═══════════════════════════════════════
+# ════════════ TAB 1 ══════════════════════════════════════════
 with t1:
-    st.markdown('<div class="page-title">📊 NCR Ride Bookings Dashboard</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="page-subtitle">Showing <b style="color:#06C167">{total:,}</b> bookings · <b style="color:#1FBAD6">{completed:,}</b> completed · Year 2024</div>', unsafe_allow_html=True)
-    st.markdown(f"""<div class="kpi-grid">
-      {kpi("Total Bookings",  f"{total:,}",           "green",  "All statuses")}
-      {kpi("Completed",       f"{completed:,}",        "blue",   f"{comp_rate:.1f}% rate")}
-      {kpi("Total Revenue",   f"₹{revenue/1e6:.2f}M", "purple", "Completed rides")}
-      {kpi("Avg Fare",        f"₹{avg_fare:.0f}",     "orange", f"Avg {avg_dist:.1f} km")}
-      {kpi("Cancel Rate",     f"{cancel_rate:.1f}%",  "red",    f"{cancelled:,} rides")}
-      {kpi("Avg Rating",      f"{avg_rating:.2f}⭐",  "yellow", "Driver rating")}
-    </div>""", unsafe_allow_html=True)
-    st.markdown("---")
+    # KPI CARDS
+    st.markdown('<div class="section-label">KEY PERFORMANCE INDICATORS</div>', unsafe_allow_html=True)
 
-    if completed:
-        monthly = fd_c.groupby(['Month','Month_Num'])['Booking Value'].sum().reset_index().sort_values('Month_Num')
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=monthly['Month'], y=monthly['Booking Value'],
-            marker=dict(color='#06C167', opacity=0.75), name='Revenue',
-            hovertemplate='<b>%{x}</b><br>₹%{y:,.0f}<extra></extra>'))
-        fig.add_trace(go.Scatter(x=monthly['Month'], y=monthly['Booking Value'],
-            mode='lines+markers', line=dict(color='#FFD166', width=2.5),
-            marker=dict(size=8, color='#FFD166'), name='Trend',
-            hovertemplate='<b>%{x}</b><br>₹%{y:,.0f}<extra></extra>'))
-        fig.update_layout(**dark_layout("Monthly Revenue Trend — 2024", 340),
-            yaxis_tickprefix='₹', yaxis_tickformat=',.0f')
-        st.plotly_chart(fig, use_container_width=True)
+    def rev_fmt(v):
+        if v >= 1e6: return f"₹{v/1e5:.1f}L"
+        return f"₹{v/1000:.1f}K"
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown(f"""
+    <div class="kpi-grid">
+      <div class="kpi-card c1">
+        <span class="kpi-icon">🚗</span>
+        <div class="kpi-title">Total Bookings</div>
+        <div class="kpi-val c1">{total:,}</div>
+        <div class="kpi-sub">bookings in selection</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:#1FBAD6"></div></div>
+      </div>
+      <div class="kpi-card c2">
+        <span class="kpi-icon">✅</span>
+        <div class="kpi-title">Completed Rides</div>
+        <div class="kpi-val c2">{completed:,}</div>
+        <div class="kpi-sub">{comp_rate:.1f}% completion rate</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{comp_rate:.0f}%;background:#06C167"></div></div>
+      </div>
+      <div class="kpi-card c3">
+        <span class="kpi-icon">💰</span>
+        <div class="kpi-title">Total Revenue</div>
+        <div class="kpi-val c3">{rev_fmt(revenue)}</div>
+        <div class="kpi-sub">Avg ₹{avg_fare:.0f} per ride</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:80%;background:#FFD166"></div></div>
+      </div>
+      <div class="kpi-card c4">
+        <span class="kpi-icon">❌</span>
+        <div class="kpi-title">Cancellations</div>
+        <div class="kpi-val c4">{cancelled:,}</div>
+        <div class="kpi-sub">{cancel_rate:.1f}% cancellation rate</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{cancel_rate:.0f}%;background:#EF233C"></div></div>
+      </div>
+    </div>
+    <div style="margin-top:1px"></div>
+    <div class="kpi-grid">
+      <div class="kpi-card c5">
+        <span class="kpi-icon">⭐</span>
+        <div class="kpi-title">Avg Driver Rating</div>
+        <div class="kpi-val c5">{avg_dr:.2f}</div>
+        <div class="kpi-sub">out of 5.00</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{avg_dr/5*100:.0f}%;background:#A259FF"></div></div>
+      </div>
+      <div class="kpi-card c6">
+        <span class="kpi-icon">🌟</span>
+        <div class="kpi-title">Avg Cust Rating</div>
+        <div class="kpi-val c6">{avg_cr:.2f}</div>
+        <div class="kpi-sub">out of 5.00</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:{avg_cr/5*100:.0f}%;background:#FF6B35"></div></div>
+      </div>
+      <div class="kpi-card c7">
+        <span class="kpi-icon">📍</span>
+        <div class="kpi-title">Avg Ride Distance</div>
+        <div class="kpi-val c7">{avg_dist:.1f} km</div>
+        <div class="kpi-sub">avg per ride</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:65%;background:#F72585"></div></div>
+      </div>
+      <div class="kpi-card c8">
+        <span class="kpi-icon">⏱️</span>
+        <div class="kpi-title">Avg VTAT / CTAT</div>
+        <div class="kpi-val c8">{avg_vtat:.1f} / {avg_ctat:.1f}</div>
+        <div class="kpi-sub">VTAT / CTAT (min)</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:55%;background:#4CC9F0"></div></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="section-label">BOOKING OVERVIEW &amp; TRENDS</div>', unsafe_allow_html=True)
+
+    col1, col2 = st.columns([3, 2])
     with col1:
+        st.markdown('<div class="chart-title">Monthly Bookings &amp; Revenue Trend</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-sub">Ride count (bars) vs total revenue line — Jan to Dec 2024</div>', unsafe_allow_html=True)
+        if completed:
+            mo = fd_c.groupby(['Month','Month_Num']).agg(
+                Rides=('Booking Value','count'), Revenue=('Booking Value','sum')
+            ).reset_index().sort_values('Month_Num')
+            mo['Mon'] = mo['Month'].str[:3]
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig.add_trace(go.Bar(x=mo['Mon'], y=mo['Rides'],
+                name='Rides', marker_color='#1a3a2a',
+                marker_line_color='#06C167', marker_line_width=1,
+                hovertemplate='%{x}<br>Rides: %{y:,}<extra></extra>'), secondary_y=False)
+            fig.add_trace(go.Scatter(x=mo['Mon'], y=mo['Revenue'],
+                name='Revenue(₹)', mode='lines+markers',
+                line=dict(color='#FFD166', width=2.5),
+                marker=dict(size=7, color='#FFD166', line=dict(color='#0b0c14', width=2)),
+                hovertemplate='%{x}<br>₹%{y:,.0f}<extra></extra>'), secondary_y=True)
+            layout = mk(height=300)
+            layout['legend'] = dict(orientation='h', y=-0.15, x=0,
+                bgcolor='rgba(0,0,0,0)', font=dict(color='#888899', size=10))
+            fig.update_layout(**layout)
+            fig.update_yaxes(gridcolor='#1a1a2a', color='#444466',
+                tickfont=dict(size=10, color='#555577'), secondary_y=False)
+            fig.update_yaxes(gridcolor='#1a1a2a', color='#444466',
+                tickfont=dict(size=10, color='#555577'),
+                tickprefix='₹', secondary_y=True)
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info("No completed rides in current filter")
+
+    with col2:
+        st.markdown('<div class="chart-title">Booking Status Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-sub">Count and share of each booking outcome</div>', unsafe_allow_html=True)
         sc = fd['Booking Status'].value_counts().reset_index()
         fig2 = px.pie(sc, values='count', names='Booking Status',
-            color_discrete_sequence=COLORS, hole=0.55, title='Booking Status')
-        fig2.update_layout(**dark_layout("Booking Status Breakdown", 300))
+            color_discrete_sequence=C, hole=0.6)
         fig2.update_traces(textfont_size=10, textinfo='percent',
-            marker=dict(line=dict(color='#0a0a0f', width=2)))
-        st.plotly_chart(fig2, use_container_width=True)
-    with col2:
-        if completed:
-            vt = fd_c.groupby('Vehicle Type')['Booking Value'].sum().sort_values().reset_index()
-            fig3 = px.bar(vt, x='Booking Value', y='Vehicle Type', orientation='h',
-                color='Vehicle Type', color_discrete_sequence=COLORS, title='Revenue by Vehicle')
-            fig3.update_layout(**dark_layout("Revenue by Vehicle", 300),
-                showlegend=False, xaxis_tickprefix='₹')
-            fig3.update_traces(marker_line_width=0)
-            st.plotly_chart(fig3, use_container_width=True)
+            marker=dict(line=dict(color='#0b0c14', width=2)),
+            hovertemplate='<b>%{label}</b><br>%{value:,} rides<br>%{percent}<extra></extra>')
+        fig2.update_layout(**mk(height=300),
+            legend=dict(orientation='v', x=1.02, y=0.5,
+                font=dict(color='#888899', size=10), bgcolor='rgba(0,0,0,0)'))
+        st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
+
+    col3, col4 = st.columns(2)
     with col3:
+        st.markdown('<div class="chart-title">Revenue by Vehicle Type</div>', unsafe_allow_html=True)
+        if completed:
+            vr = fd_c.groupby('Vehicle Type')['Booking Value'].sum().sort_values().reset_index()
+            fig3 = px.bar(vr, x='Booking Value', y='Vehicle Type', orientation='h',
+                color='Vehicle Type', color_discrete_sequence=C)
+            fig3.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{y}</b><br>₹%{x:,.0f}<extra></extra>')
+            fig3.update_layout(**mk(height=280), showlegend=False, xaxis_tickprefix='₹')
+            st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
+    with col4:
+        st.markdown('<div class="chart-title">Payment Method Share</div>', unsafe_allow_html=True)
         if completed:
             pm = fd_c['Payment Method'].dropna().value_counts().reset_index()
             fig4 = px.bar(pm, x='count', y='Payment Method', orientation='h',
-                color='Payment Method', color_discrete_sequence=COLORS, title='Payment Methods')
-            fig4.update_layout(**dark_layout("Payment Methods", 300), showlegend=False)
-            fig4.update_traces(marker_line_width=0)
-            st.plotly_chart(fig4, use_container_width=True)
+                color='Payment Method', color_discrete_sequence=C)
+            fig4.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{y}</b><br>%{x:,} rides<extra></extra>')
+            fig4.update_layout(**mk(height=280), showlegend=False)
+            st.plotly_chart(fig4, use_container_width=True, config={'displayModeBar': False})
 
-# ════ TAB 2 — TIME ════════════════════════════════════════════
+# ════════════ TAB 2 ══════════════════════════════════════════
 with t2:
-    st.markdown('<div class="page-title">⏰ Time Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Peak hours, daily and quarterly patterns</div>', unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown('<div class="section-label">TIME-BASED PATTERNS</div>', unsafe_allow_html=True)
 
     hourly = fd.groupby(['Hour','Booking Status']).size().reset_index(name='count')
     fig = px.line(hourly, x='Hour', y='count', color='Booking Status',
-        color_discrete_sequence=COLORS, markers=True, title='Hourly Bookings by Status')
-    fig.update_traces(line_width=2.5, marker_size=7)
-    lay = dark_layout("Hourly Bookings by Status", 360)
+        color_discrete_sequence=C, markers=True)
+    fig.update_traces(line_width=2.5, marker_size=6)
+    lay = mk(height=320)
     lay['xaxis']['tickvals'] = list(range(0, 24, 2))
+    lay['xaxis']['title'] = 'Hour of Day'
     fig.update_layout(**lay)
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown('<div class="chart-title">Hourly Bookings by Status</div>', unsafe_allow_html=True)
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
     col1, col2 = st.columns(2)
     with col1:
+        st.markdown('<div class="chart-title">Rides Heatmap — Day × Hour</div>', unsafe_allow_html=True)
         if completed:
             heat = fd_c.groupby(['DayOfWeek','Hour']).size().reset_index(name='rides')
             pivot = heat.pivot(index='DayOfWeek', columns='Hour', values='rides').fillna(0)
-            pivot = pivot.reindex([d for d in DAY_ORDER if d in pivot.index])
+            pivot = pivot.reindex([d for d in DAYS if d in pivot.index])
             fig2 = px.imshow(pivot,
-                color_continuous_scale=[[0,'#0d0d1a'],[0.4,'#0d4422'],[1,'#06C167']],
-                title='Rides Heatmap — Day × Hour',
-                labels=dict(x='Hour', y='', color='Rides'))
-            fig2.update_layout(**dark_layout("Rides Heatmap", 340))
-            st.plotly_chart(fig2, use_container_width=True)
+                color_continuous_scale=[[0,'#0f1018'],[0.3,'#0d3322'],[1,'#06C167']],
+                labels=dict(x='Hour', y='', color='Rides'),
+                aspect='auto')
+            fig2.update_layout(**mk(height=310))
+            fig2.update_coloraxes(showscale=False)
+            st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
     with col2:
+        st.markdown('<div class="chart-title">Revenue by Day of Week</div>', unsafe_allow_html=True)
         if completed:
             dow = fd_c.groupby('DayOfWeek')['Booking Value'].sum().reset_index()
-            dow['ord'] = dow['DayOfWeek'].apply(lambda x: DAY_ORDER.index(x) if x in DAY_ORDER else 7)
+            dow['ord'] = dow['DayOfWeek'].apply(lambda x: DAYS.index(x) if x in DAYS else 7)
             dow = dow.sort_values('ord')
             fig3 = px.bar(dow, x='DayOfWeek', y='Booking Value',
-                color='Booking Value', color_continuous_scale=['#1a1a3a','#06C167'],
-                title='Revenue by Day of Week')
-            fig3.update_layout(**dark_layout("Revenue by Day", 340),
-                showlegend=False, yaxis_tickprefix='₹', coloraxis_showscale=False)
-            fig3.update_traces(marker_line_width=0)
-            st.plotly_chart(fig3, use_container_width=True)
+                color='Booking Value', color_continuous_scale=['#1a1a2e','#06C167'])
+            fig3.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>₹%{y:,.0f}<extra></extra>')
+            fig3.update_layout(**mk(height=310), showlegend=False,
+                yaxis_tickprefix='₹', coloraxis_showscale=False)
+            st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
-    if completed:
-        col1, col2 = st.columns(2)
-        with col1:
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown('<div class="chart-title">Quarterly Revenue</div>', unsafe_allow_html=True)
+        if completed:
             q = fd_c.groupby('Quarter')['Booking Value'].sum().reset_index()
             fig4 = px.bar(q, x='Quarter', y='Booking Value', color='Quarter',
-                color_discrete_sequence=COLORS, title='Quarterly Revenue')
-            fig4.update_layout(**dark_layout("Quarterly Revenue", 300),
-                showlegend=False, yaxis_tickprefix='₹')
-            fig4.update_traces(marker_line_width=0)
-            st.plotly_chart(fig4, use_container_width=True)
-        with col2:
+                color_discrete_sequence=C)
+            fig4.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>₹%{y:,.0f}<extra></extra>')
+            fig4.update_layout(**mk(height=280), showlegend=False, yaxis_tickprefix='₹')
+            st.plotly_chart(fig4, use_container_width=True, config={'displayModeBar': False})
+    with col4:
+        st.markdown('<div class="chart-title">Quarterly Ride Count</div>', unsafe_allow_html=True)
+        if completed:
             qr = fd_c.groupby('Quarter').size().reset_index(name='Rides')
             fig5 = px.bar(qr, x='Quarter', y='Rides', color='Quarter',
-                color_discrete_sequence=COLORS, title='Quarterly Ride Count')
-            fig5.update_layout(**dark_layout("Quarterly Rides", 300), showlegend=False)
-            fig5.update_traces(marker_line_width=0)
-            st.plotly_chart(fig5, use_container_width=True)
+                color_discrete_sequence=C)
+            fig5.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>%{y:,} rides<extra></extra>')
+            fig5.update_layout(**mk(height=280), showlegend=False)
+            st.plotly_chart(fig5, use_container_width=True, config={'displayModeBar': False})
 
-# ════ TAB 3 — VEHICLES ════════════════════════════════════════
+# ════════════ TAB 3 ══════════════════════════════════════════
 with t3:
-    st.markdown('<div class="page-title">🚗 Vehicle & Route Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Performance breakdown by vehicle type and popular routes</div>', unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown('<div class="section-label">VEHICLE PERFORMANCE</div>', unsafe_allow_html=True)
 
     if completed:
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            vt2 = fd_c['Vehicle Type'].value_counts().reset_index()
-            fig = px.bar(vt2, x='Vehicle Type', y='count', color='Vehicle Type',
-                color_discrete_sequence=COLORS, title='Total Rides by Vehicle Type')
-            fig.update_layout(**dark_layout("Rides by Vehicle", 320), showlegend=False)
+            st.markdown('<div class="chart-title">Rides by Vehicle</div>', unsafe_allow_html=True)
+            vt = fd_c['Vehicle Type'].value_counts().reset_index()
+            fig = px.bar(vt, x='Vehicle Type', y='count',
+                color='Vehicle Type', color_discrete_sequence=C)
             fig.update_traces(marker_line_width=0)
-            st.plotly_chart(fig, use_container_width=True)
+            fig.update_layout(**mk(height=280), showlegend=False)
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         with col2:
-            vt3 = fd_c.groupby('Vehicle Type')['Booking Value'].mean().reset_index()
-            fig2 = px.bar(vt3, x='Vehicle Type', y='Booking Value', color='Vehicle Type',
-                color_discrete_sequence=COLORS, title='Avg Fare by Vehicle Type')
-            fig2.update_layout(**dark_layout("Avg Fare by Vehicle", 320),
-                showlegend=False, yaxis_tickprefix='₹')
+            st.markdown('<div class="chart-title">Avg Fare by Vehicle</div>', unsafe_allow_html=True)
+            vf = fd_c.groupby('Vehicle Type')['Booking Value'].mean().reset_index()
+            fig2 = px.bar(vf, x='Vehicle Type', y='Booking Value',
+                color='Vehicle Type', color_discrete_sequence=C)
             fig2.update_traces(marker_line_width=0)
-            st.plotly_chart(fig2, use_container_width=True)
+            fig2.update_layout(**mk(height=280), showlegend=False, yaxis_tickprefix='₹')
+            st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
+        with col3:
+            st.markdown('<div class="chart-title">Revenue Share</div>', unsafe_allow_html=True)
+            vrev = fd_c.groupby('Vehicle Type')['Booking Value'].sum().reset_index()
+            fig3 = px.pie(vrev, values='Booking Value', names='Vehicle Type',
+                color_discrete_sequence=C, hole=0.55)
+            fig3.update_traces(textfont_size=10, textinfo='percent',
+                marker=dict(line=dict(color='#0b0c14', width=2)))
+            fig3.update_layout(**mk(height=280))
+            st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
+        st.markdown('<div class="chart-title">Distance vs Fare by Vehicle Type</div>', unsafe_allow_html=True)
         sample = fd_c[['Ride Distance','Booking Value','Vehicle Type']].dropna().sample(
-            min(2000, completed), random_state=42)
-        fig3 = px.scatter(sample, x='Ride Distance', y='Booking Value',
-            color='Vehicle Type', color_discrete_sequence=COLORS, opacity=0.5,
-            title='Distance vs Fare by Vehicle Type',
+            min(3000, completed), random_state=42)
+        fig4 = px.scatter(sample, x='Ride Distance', y='Booking Value',
+            color='Vehicle Type', color_discrete_sequence=C, opacity=0.5,
             labels={'Ride Distance':'Distance (km)', 'Booking Value':'Fare (₹)'})
-        fig3.update_traces(marker_size=5, marker_line_width=0)
-        fig3.update_layout(**dark_layout("Distance vs Fare", 380))
-        st.plotly_chart(fig3, use_container_width=True)
+        fig4.update_traces(marker_size=4, marker_line_width=0)
+        fig4.update_layout(**mk(height=360))
+        st.plotly_chart(fig4, use_container_width=True, config={'displayModeBar': False})
 
-        st.markdown('<div class="section-header">Top 15 Popular Routes</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">TOP ROUTES</div>', unsafe_allow_html=True)
         routes = fd_c.groupby(['Pickup Location','Drop Location']).agg(
             Trips=('Booking Value','count'),
             Avg_Fare=('Booking Value','mean'),
-            Avg_Distance=('Ride Distance','mean')
+            Avg_Dist=('Ride Distance','mean')
         ).reset_index().sort_values('Trips', ascending=False).head(15).round(2)
         routes['Route'] = routes['Pickup Location'] + ' → ' + routes['Drop Location']
-        st.dataframe(routes[['Route','Trips','Avg_Fare','Avg_Distance']],
+        st.dataframe(routes[['Route','Trips','Avg_Fare','Avg_Dist']],
             use_container_width=True, hide_index=True, height=420)
 
-# ════ TAB 4 — CANCELLATIONS ═══════════════════════════════════
+# ════════════ TAB 4 ══════════════════════════════════════════
 with t4:
-    st.markdown('<div class="page-title">❌ Cancellation Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Why rides are cancelled and when it happens most</div>', unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown('<div class="section-label">CANCELLATION ANALYSIS</div>', unsafe_allow_html=True)
 
     cust_c = fd[fd['Booking Status'] == 'Cancelled by Customer']
     drv_c  = fd[fd['Booking Status'] == 'Cancelled by Driver']
     no_drv = fd[fd['Booking Status'] == 'No Driver Found']
 
-    st.markdown(f"""<div class="kpi-grid">
-      {kpi("By Customer",     f"{len(cust_c):,}",              "red",    f"{len(cust_c)/total*100:.1f}% of all" if total else "")}
-      {kpi("By Driver",       f"{len(drv_c):,}",               "orange", f"{len(drv_c)/total*100:.1f}% of all" if total else "")}
-      {kpi("No Driver Found", f"{len(no_drv):,}",              "yellow", f"{len(no_drv)/total*100:.1f}% of all" if total else "")}
-      {kpi("Total Cancelled", f"{len(cust_c)+len(drv_c):,}",  "purple", "Combined")}
-      {kpi("Cancel Rate",     f"{cancel_rate:.1f}%",           "blue",   "Cust + Driver")}
-      {kpi("Completion Rate", f"{comp_rate:.1f}%",             "green",  f"{completed:,} rides")}
-    </div>""", unsafe_allow_html=True)
-    st.markdown("---")
+    col1,col2,col3,col4 = st.columns(4)
+    col1.metric("By Customer",     f"{len(cust_c):,}", f"{len(cust_c)/total*100:.1f}%" if total else "")
+    col2.metric("By Driver",       f"{len(drv_c):,}",  f"{len(drv_c)/total*100:.1f}%" if total else "")
+    col3.metric("No Driver Found", f"{len(no_drv):,}", f"{len(no_drv)/total*100:.1f}%" if total else "")
+    col4.metric("Total Cancel Rate",f"{cancel_rate:.1f}%")
 
-    col1, col2 = st.columns(2)
-    with col1:
+    st.markdown("---")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="chart-title">Customer Cancellations by Vehicle</div>', unsafe_allow_html=True)
         if len(cust_c):
             cc = cust_c['Vehicle Type'].value_counts().reset_index()
             fig = px.bar(cc, x='Vehicle Type', y='count',
-                color='count', color_continuous_scale=['#3a0a0a','#EF233C'],
-                title='Customer Cancellations by Vehicle')
-            fig.update_layout(**dark_layout("Customer Cancellations", 320),
-                showlegend=False, coloraxis_showscale=False)
+                color='count', color_continuous_scale=['#2a0a0a','#EF233C'])
             fig.update_traces(marker_line_width=0)
-            st.plotly_chart(fig, use_container_width=True)
-    with col2:
+            fig.update_layout(**mk(height=300), coloraxis_showscale=False)
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    with c2:
+        st.markdown('<div class="chart-title">Driver Cancellations by Vehicle</div>', unsafe_allow_html=True)
         if len(drv_c):
             dc = drv_c['Vehicle Type'].value_counts().reset_index()
             fig2 = px.bar(dc, x='Vehicle Type', y='count',
-                color='count', color_continuous_scale=['#3a1a0a','#FF6B35'],
-                title='Driver Cancellations by Vehicle')
-            fig2.update_layout(**dark_layout("Driver Cancellations", 320),
-                showlegend=False, coloraxis_showscale=False)
+                color='count', color_continuous_scale=['#2a1a0a','#FF6B35'])
             fig2.update_traces(marker_line_width=0)
-            st.plotly_chart(fig2, use_container_width=True)
+            fig2.update_layout(**mk(height=300), coloraxis_showscale=False)
+            st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
     cancel_all = fd[fd['Booking Status'].str.startswith('Cancelled')]
     if len(cancel_all):
-        hc = cancel_all.groupby('Hour').size().reset_index(name='cancellations')
+        st.markdown('<div class="chart-title">Cancellations by Hour of Day</div>', unsafe_allow_html=True)
+        hc = cancel_all.groupby('Hour').size().reset_index(name='count')
         fig3 = go.Figure()
-        fig3.add_trace(go.Scatter(
-            x=hc['Hour'], y=hc['cancellations'],
+        fig3.add_trace(go.Scatter(x=hc['Hour'], y=hc['count'],
             fill='tozeroy', line=dict(color='#EF233C', width=2.5),
-            fillcolor='rgba(239,35,60,0.12)', mode='lines+markers',
+            fillcolor='rgba(239,35,60,0.10)', mode='lines+markers',
             marker=dict(size=6, color='#EF233C'),
-            hovertemplate='Hour %{x}:00<br>%{y} cancellations<extra></extra>'
-        ))
-        lay = dark_layout("Cancellations by Hour of Day", 300)
+            hovertemplate='Hour %{x}:00 — %{y} cancellations<extra></extra>'))
+        lay = mk(height=280)
         lay['xaxis']['tickvals'] = list(range(0, 24, 2))
         fig3.update_layout(**lay)
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
-# ════ TAB 5 — RATINGS ══════════════════════════════════════════
+# ════════════ TAB 5 ══════════════════════════════════════════
 with t5:
-    st.markdown('<div class="page-title">⭐ Ratings & Wait Times</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Driver & customer satisfaction and service speed</div>', unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown('<div class="section-label">RATINGS &amp; WAIT TIMES</div>', unsafe_allow_html=True)
 
     five_star = int((fd_c['Driver Ratings'] == 5).sum()) if completed else 0
     low_rated = int((fd_c['Driver Ratings'] < 3).sum()) if completed else 0
 
-    st.markdown(f"""<div class="kpi-grid">
-      {kpi("Driver Rating",   f"{avg_rating:.2f}⭐",   "green",  "Avg by customers")}
-      {kpi("Customer Rating", f"{avg_cust_rat:.2f}⭐", "blue",   "Avg by drivers")}
-      {kpi("Avg VTAT",        f"{avg_vtat:.1f} min",   "purple", "Vehicle arrival")}
-      {kpi("Avg CTAT",        f"{avg_ctat:.1f} min",   "orange", "Trip duration")}
-      {kpi("5-Star Rides",    f"{five_star:,}",         "yellow", "Perfect rating")}
-      {kpi("Low Rated",       f"{low_rated:,}",         "red",    "Below 3 stars")}
-    </div>""", unsafe_allow_html=True)
-    st.markdown("---")
+    col1,col2,col3,col4 = st.columns(4)
+    col1.metric("Avg Driver Rating",   f"{avg_dr:.2f} ⭐")
+    col2.metric("Avg Customer Rating", f"{avg_cr:.2f} ⭐")
+    col3.metric("Avg VTAT",            f"{avg_vtat:.1f} min")
+    col4.metric("Avg CTAT",            f"{avg_ctat:.1f} min")
 
-    col1, col2 = st.columns(2)
-    with col1:
+    st.markdown("---")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="chart-title">Driver vs Customer Rating Distribution</div>', unsafe_allow_html=True)
         if completed:
             fig = go.Figure()
             fig.add_trace(go.Histogram(x=fd_c['Driver Ratings'].dropna(),
-                nbinsx=20, name='Driver', marker_color='#06C167', opacity=0.8))
+                nbinsx=20, name='Driver Rating', marker_color='#06C167', opacity=0.8))
             fig.add_trace(go.Histogram(x=fd_c['Customer Rating'].dropna(),
-                nbinsx=20, name='Customer', marker_color='#A259FF', opacity=0.7))
-            fig.update_layout(**dark_layout("Rating Distribution", 320), barmode='overlay')
-            st.plotly_chart(fig, use_container_width=True)
-    with col2:
+                nbinsx=20, name='Cust Rating', marker_color='#A259FF', opacity=0.7))
+            fig.update_layout(**mk(height=300), barmode='overlay')
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    with c2:
+        st.markdown('<div class="chart-title">Avg VTAT by Vehicle Type</div>', unsafe_allow_html=True)
         vtat = fd.groupby('Vehicle Type')['Avg VTAT'].mean().sort_values().reset_index()
         fig2 = px.bar(vtat, x='Avg VTAT', y='Vehicle Type', orientation='h',
-            color='Avg VTAT', color_continuous_scale=['#0d1a3a','#1FBAD6'],
-            title='Avg Wait Time (VTAT) by Vehicle')
-        fig2.update_layout(**dark_layout("VTAT by Vehicle", 320), coloraxis_showscale=False)
+            color='Avg VTAT', color_continuous_scale=['#0d1a3a','#1FBAD6'])
         fig2.update_traces(marker_line_width=0)
-        st.plotly_chart(fig2, use_container_width=True)
+        fig2.update_layout(**mk(height=300), coloraxis_showscale=False)
+        st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
     if completed:
+        st.markdown('<div class="chart-title">Monthly Avg Wait Times (VTAT &amp; CTAT)</div>', unsafe_allow_html=True)
         mw = fd.groupby(['Month','Month_Num'])[['Avg VTAT','Avg CTAT']].mean().reset_index().sort_values('Month_Num')
+        mw['Mon'] = mw['Month'].str[:3]
         fig3 = go.Figure()
-        fig3.add_trace(go.Scatter(x=mw['Month'], y=mw['Avg VTAT'],
+        fig3.add_trace(go.Scatter(x=mw['Mon'], y=mw['Avg VTAT'],
             mode='lines+markers', name='VTAT',
             line=dict(color='#1FBAD6', width=2.5),
-            marker=dict(size=8, color='#1FBAD6', line=dict(color='#0a0a0f', width=2))))
-        fig3.add_trace(go.Scatter(x=mw['Month'], y=mw['Avg CTAT'],
+            marker=dict(size=8, color='#1FBAD6', line=dict(color='#0b0c14', width=2))))
+        fig3.add_trace(go.Scatter(x=mw['Mon'], y=mw['Avg CTAT'],
             mode='lines+markers', name='CTAT',
             line=dict(color='#FF6B35', width=2.5),
-            marker=dict(size=8, color='#FF6B35', line=dict(color='#0a0a0f', width=2))))
-        lay = dark_layout("Monthly Avg Wait Times (VTAT & CTAT)", 320)
-        lay['yaxis']['title'] = 'Minutes'
+            marker=dict(size=8, color='#FF6B35', line=dict(color='#0b0c14', width=2))))
+        lay = mk(height=300)
+        lay['yaxis']['title'] = dict(text='Minutes', font=dict(color='#555577'))
         fig3.update_layout(**lay)
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
-        st.markdown('<div class="section-header">Vehicle Type Full Summary</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">VEHICLE SUMMARY TABLE</div>', unsafe_allow_html=True)
         summary = fd_c.groupby('Vehicle Type').agg(
             Rides=('Booking Value','count'),
             Revenue=('Booking Value','sum'),
