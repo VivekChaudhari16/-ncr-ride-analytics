@@ -336,9 +336,10 @@ with t1:
         fig2.update_traces(textfont_size=10, textinfo='percent',
             marker=dict(line=dict(color='#0b0c14', width=2)),
             hovertemplate='<b>%{label}</b><br>%{value:,} rides<br>%{percent}<extra></extra>')
-        fig2.update_layout(**mk(height=300),
-            legend=dict(orientation='v', x=1.02, y=0.5,
-                font=dict(color='#888899', size=10), bgcolor='rgba(0,0,0,0)'))
+        _lay2 = mk(height=300)
+        _lay2['legend'] = dict(orientation='v', x=1.02, y=0.5,
+            font=dict(color='#888899', size=10), bgcolor='rgba(0,0,0,0)')
+        fig2.update_layout(**_lay2)
         st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
     col3, col4 = st.columns(2)
