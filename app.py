@@ -200,9 +200,13 @@ with col_s:
     sel_s = st.selectbox("STATUS", list(STATUSES.keys()), index=0, label_visibility="visible", key="stat")
 
 # ── FILTER DATA ─────────────────────────────────────────────
-fd = df.copy()
+# Base filter: vehicle only (used for Cancellations/Overview status mix)
+fd_vehicle = df.copy()
 if sel_v != 'All':
-    fd = fd[fd['Vehicle Type'] == sel_v]
+    fd_vehicle = fd_vehicle[fd_vehicle['Vehicle Type'] == sel_v]
+
+# Full filter: vehicle + status (used for most tabs)
+fd = fd_vehicle.copy()
 if sel_s != 'All':
     fd = fd[fd['Booking Status'] == STATUSES[sel_s]]
 
@@ -299,6 +303,27 @@ with t1:
       </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── NEW VIZ: Booking-to-Completion Funnel ────────────────
+    st.markdown('<div class="section-label">BOOKING TO COMPLETION FUNNEL</div>', unsafe_allow_html=True)
+    funnel_total      = total
+    funnel_no_driver  = (fd['Booking Status'] != 'No Driver Found').sum()
+    funnel_not_cancel = (~fd['Booking Status'].str.startswith('Cancelled')).sum()
+    funnel_completed  = completed
+
+    funnel_data = pd.DataFrame({
+        'Stage': ['Total Bookings','Driver Assigned','Not Cancelled','Completed'],
+        'Count': [funnel_total, funnel_no_driver, funnel_not_cancel, funnel_completed]
+    })
+    fig_funnel = go.Figure(go.Funnel(
+        y=funnel_data['Stage'], x=funnel_data['Count'],
+        textinfo='value+percent initial',
+        marker=dict(color=['#1FBAD6','#A259FF','#FFD166','#06C167']),
+        connector=dict(line=dict(color='#2a2a4a', width=1)),
+        textfont=dict(color='white', size=12)
+    ))
+    fig_funnel.update_layout(**mk(height=320))
+    st.plotly_chart(fig_funnel, use_container_width=True, config={'displayModeBar': False})
 
     st.markdown('<div class="section-label">BOOKING OVERVIEW &amp; TRENDS</div>', unsafe_allow_html=True)
 
@@ -488,19 +513,89 @@ with t3:
         st.dataframe(routes[['Route','Trips','Avg_Fare','Avg_Dist']],
             use_container_width=True, hide_index=True, height=420)
 
+        # ── NEW VIZ: Distance Bucket Analysis ────────────────
+        st.markdown('<div class="section-label">RIDE DISTANCE BUCKETS</div>', unsafe_allow_html=True)
+        dist_bins = [0, 5, 10, 20, 30, 50, 1000]
+        dist_labels = ['0-5 km','5-10 km','10-20 km','20-30 km','30-50 km','50+ km']
+        fd_c_dist = fd_c.copy()
+        fd_c_dist['Distance_Bucket'] = pd.cut(fd_c_dist['Ride Distance'], bins=dist_bins, labels=dist_labels)
+        bucket_stats = fd_c_dist.groupby('Distance_Bucket', observed=True).agg(
+            Rides=('Booking Value','count'),
+            Revenue=('Booking Value','sum'),
+            Avg_Fare=('Booking Value','mean')
+        ).reset_index()
+
+        db1, db2 = st.columns(2)
+        with db1:
+            st.markdown('<div class="chart-title">Rides by Distance Bucket</div>', unsafe_allow_html=True)
+            fig_db1 = px.bar(bucket_stats, x='Distance_Bucket', y='Rides',
+                color='Distance_Bucket', color_discrete_sequence=C)
+            fig_db1.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>%{y:,} rides<extra></extra>')
+            fig_db1.update_layout(**mk(height=300), showlegend=False,
+                xaxis=dict(gridcolor='#1a1a2a', color='#444466', title='Distance Range'))
+            st.plotly_chart(fig_db1, use_container_width=True, config={'displayModeBar': False})
+        with db2:
+            st.markdown('<div class="chart-title">Revenue Contribution by Distance</div>', unsafe_allow_html=True)
+            fig_db2 = px.pie(bucket_stats, values='Revenue', names='Distance_Bucket',
+                color_discrete_sequence=C, hole=0.55)
+            fig_db2.update_traces(textfont_size=10, textinfo='percent',
+                marker=dict(line=dict(color='#0b0c14', width=2)),
+                hovertemplate='<b>%{label}</b><br>₹%{value:,.0f}<extra></extra>')
+            fig_db2.update_layout(**mk(height=300))
+            st.plotly_chart(fig_db2, use_container_width=True, config={'displayModeBar': False})
+
+        # ── NEW VIZ: Customer Repeat / LTV Segments ──────────
+        st.markdown('<div class="section-label">CUSTOMER LOYALTY SEGMENTS</div>', unsafe_allow_html=True)
+        cust_stats = fd_c.groupby('Customer ID').agg(
+            Rides=('Booking Value','count'),
+            LTV=('Booking Value','sum')
+        ).reset_index()
+        cust_stats['Segment'] = pd.cut(cust_stats['Rides'],
+            bins=[0,1,3,7,1000], labels=['1 Ride (One-time)','2-3 Rides (Occasional)','4-7 Rides (Regular)','8+ Rides (Loyal)'])
+        seg_summary = cust_stats.groupby('Segment', observed=True).agg(
+            Customers=('Customer ID','count'),
+            Avg_LTV=('LTV','mean'),
+            Total_Revenue=('LTV','sum')
+        ).reset_index()
+
+        cs1, cs2 = st.columns(2)
+        with cs1:
+            st.markdown('<div class="chart-title">Customers by Loyalty Segment</div>', unsafe_allow_html=True)
+            fig_cs1 = px.bar(seg_summary, x='Segment', y='Customers',
+                color='Segment', color_discrete_sequence=C)
+            fig_cs1.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>%{y:,} customers<extra></extra>')
+            fig_cs1.update_layout(**mk(height=300), showlegend=False,
+                xaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=9)))
+            st.plotly_chart(fig_cs1, use_container_width=True, config={'displayModeBar': False})
+        with cs2:
+            st.markdown('<div class="chart-title">Avg Lifetime Value by Segment</div>', unsafe_allow_html=True)
+            fig_cs2 = px.bar(seg_summary, x='Segment', y='Avg_LTV',
+                color='Segment', color_discrete_sequence=C)
+            fig_cs2.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{x}</b><br>₹%{y:,.0f} avg LTV<extra></extra>')
+            fig_cs2.update_layout(**mk(height=300), showlegend=False, yaxis_tickprefix='₹',
+                xaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=9)))
+            st.plotly_chart(fig_cs2, use_container_width=True, config={'displayModeBar': False})
+
 # ════════════ TAB 4 ══════════════════════════════════════════
 with t4:
     st.markdown('<div class="section-label">CANCELLATION ANALYSIS</div>', unsafe_allow_html=True)
+    st.caption("This tab always shows all booking statuses for the selected vehicle type, regardless of the Status filter above.")
 
-    cust_c = fd[fd['Booking Status'] == 'Cancelled by Customer']
-    drv_c  = fd[fd['Booking Status'] == 'Cancelled by Driver']
-    no_drv = fd[fd['Booking Status'] == 'No Driver Found']
+    # Use fd_vehicle (vehicle filter only) so this tab isn't blanked out by the Status dropdown
+    cust_c = fd_vehicle[fd_vehicle['Booking Status'] == 'Cancelled by Customer']
+    drv_c  = fd_vehicle[fd_vehicle['Booking Status'] == 'Cancelled by Driver']
+    no_drv = fd_vehicle[fd_vehicle['Booking Status'] == 'No Driver Found']
+    veh_total = len(fd_vehicle)
+    veh_cancel_rate = (len(cust_c) + len(drv_c)) / veh_total * 100 if veh_total else 0
 
     col1,col2,col3,col4 = st.columns(4)
-    col1.metric("By Customer",     f"{len(cust_c):,}", f"{len(cust_c)/total*100:.1f}%" if total else "")
-    col2.metric("By Driver",       f"{len(drv_c):,}",  f"{len(drv_c)/total*100:.1f}%" if total else "")
-    col3.metric("No Driver Found", f"{len(no_drv):,}", f"{len(no_drv)/total*100:.1f}%" if total else "")
-    col4.metric("Total Cancel Rate",f"{cancel_rate:.1f}%")
+    col1.metric("By Customer",     f"{len(cust_c):,}", f"{len(cust_c)/veh_total*100:.1f}%" if veh_total else "")
+    col2.metric("By Driver",       f"{len(drv_c):,}",  f"{len(drv_c)/veh_total*100:.1f}%" if veh_total else "")
+    col3.metric("No Driver Found", f"{len(no_drv):,}", f"{len(no_drv)/veh_total*100:.1f}%" if veh_total else "")
+    col4.metric("Total Cancel Rate",f"{veh_cancel_rate:.1f}%")
 
     st.markdown("---")
     c1, c2 = st.columns(2)
@@ -523,7 +618,7 @@ with t4:
             fig2.update_layout(**mk(height=300), coloraxis_showscale=False)
             st.plotly_chart(fig2, use_container_width=True, config={'displayModeBar': False})
 
-    cancel_all = fd[fd['Booking Status'].str.startswith('Cancelled')]
+    cancel_all = fd_vehicle[fd_vehicle['Booking Status'].str.startswith('Cancelled')]
     if len(cancel_all):
         st.markdown('<div class="chart-title">Cancellations by Hour of Day</div>', unsafe_allow_html=True)
         hc = cancel_all.groupby('Hour').size().reset_index(name='count')
@@ -538,8 +633,49 @@ with t4:
         fig3.update_layout(**lay)
         st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
-# ════════════ TAB 5 ══════════════════════════════════════════
-with t5:
+    # ── NEW VIZ: Cancellation Reasons Breakdown ──────────────
+    st.markdown('<div class="section-label">WHY RIDES ARE CANCELLED</div>', unsafe_allow_html=True)
+    rc1, rc2 = st.columns(2)
+    with rc1:
+        st.markdown('<div class="chart-title">Customer Cancellation Reasons</div>', unsafe_allow_html=True)
+        cust_reasons = fd_vehicle['Reason for cancelling by Customer'].dropna().value_counts().reset_index()
+        if len(cust_reasons):
+            fig_cr = px.bar(cust_reasons, x='count', y='Reason for cancelling by Customer',
+                orientation='h', color='count',
+                color_continuous_scale=['#2a0a0a','#EF233C'])
+            fig_cr.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{y}</b><br>%{x:,} rides<extra></extra>')
+            fig_cr.update_layout(**mk(height=300), coloraxis_showscale=False,
+                yaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=10)))
+            st.plotly_chart(fig_cr, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info("No customer cancellation data in current filter")
+    with rc2:
+        st.markdown('<div class="chart-title">Driver Cancellation Reasons</div>', unsafe_allow_html=True)
+        drv_reasons = fd_vehicle['Driver Cancellation Reason'].dropna().value_counts().reset_index()
+        if len(drv_reasons):
+            fig_dr = px.bar(drv_reasons, x='count', y='Driver Cancellation Reason',
+                orientation='h', color='count',
+                color_continuous_scale=['#2a1a0a','#FF6B35'])
+            fig_dr.update_traces(marker_line_width=0,
+                hovertemplate='<b>%{y}</b><br>%{x:,} rides<extra></extra>')
+            fig_dr.update_layout(**mk(height=300), coloraxis_showscale=False,
+                yaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=10)))
+            st.plotly_chart(fig_dr, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info("No driver cancellation data in current filter")
+
+    incomplete_reasons = fd_vehicle['Incomplete Rides Reason'].dropna().value_counts().reset_index()
+    if len(incomplete_reasons):
+        st.markdown('<div class="chart-title">Incomplete Ride Reasons</div>', unsafe_allow_html=True)
+        fig_ir = px.bar(incomplete_reasons, x='Incomplete Rides Reason', y='count',
+            color='Incomplete Rides Reason', color_discrete_sequence=C)
+        fig_ir.update_traces(marker_line_width=0,
+            hovertemplate='<b>%{x}</b><br>%{y:,} rides<extra></extra>')
+        fig_ir.update_layout(**mk(height=260), showlegend=False)
+        st.plotly_chart(fig_ir, use_container_width=True, config={'displayModeBar': False})
+
+
     st.markdown('<div class="section-label">RATINGS &amp; WAIT TIMES</div>', unsafe_allow_html=True)
 
     five_star = int((fd_c['Driver Ratings'] == 5).sum()) if completed else 0
