@@ -682,7 +682,8 @@ with t4:
         fig_ir.update_layout(**mk(height=260), showlegend=False)
         st.plotly_chart(fig_ir, use_container_width=True, config={'displayModeBar': False})
 
-
+# ════════════ TAB 5 — RATINGS ═════════════════════════════════
+with t5:
     st.markdown('<div class="section-label">RATINGS &amp; WAIT TIMES</div>', unsafe_allow_html=True)
 
     five_star = int((fd_c['Driver Ratings'] == 5).sum()) if completed else 0
