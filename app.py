@@ -435,8 +435,9 @@ with t2:
                 color='Booking Value', color_continuous_scale=['#1a1a2e','#06C167'])
             fig3.update_traces(marker_line_width=0,
                 hovertemplate='<b>%{x}</b><br>₹%{y:,.0f}<extra></extra>')
-            fig3.update_layout(**mk(height=310), showlegend=False,
-                yaxis_tickprefix='₹', coloraxis_showscale=False)
+            _lay = mk(height=310)
+            _lay['yaxis']['tickprefix'] = '₹'
+            fig3.update_layout(**_lay, showlegend=False, coloraxis_showscale=False)
             st.plotly_chart(fig3, use_container_width=True, config={'displayModeBar': False})
 
     col3, col4 = st.columns(2)
@@ -532,8 +533,9 @@ with t3:
                 color='Distance_Bucket', color_discrete_sequence=C)
             fig_db1.update_traces(marker_line_width=0,
                 hovertemplate='<b>%{x}</b><br>%{y:,} rides<extra></extra>')
-            fig_db1.update_layout(**mk(height=300), showlegend=False,
-                xaxis=dict(gridcolor='#1a1a2a', color='#444466', title='Distance Range'))
+            _lay = mk(height=300)
+            _lay['xaxis']['title'] = 'Distance Range'
+            fig_db1.update_layout(**_lay, showlegend=False)
             st.plotly_chart(fig_db1, use_container_width=True, config={'displayModeBar': False})
         with db2:
             st.markdown('<div class="chart-title">Revenue Contribution by Distance</div>', unsafe_allow_html=True)
@@ -566,8 +568,9 @@ with t3:
                 color='Segment', color_discrete_sequence=C)
             fig_cs1.update_traces(marker_line_width=0,
                 hovertemplate='<b>%{x}</b><br>%{y:,} customers<extra></extra>')
-            fig_cs1.update_layout(**mk(height=300), showlegend=False,
-                xaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=9)))
+            _lay = mk(height=300)
+            _lay['xaxis']['tickfont'] = dict(size=9)
+            fig_cs1.update_layout(**_lay, showlegend=False)
             st.plotly_chart(fig_cs1, use_container_width=True, config={'displayModeBar': False})
         with cs2:
             st.markdown('<div class="chart-title">Avg Lifetime Value by Segment</div>', unsafe_allow_html=True)
@@ -575,8 +578,10 @@ with t3:
                 color='Segment', color_discrete_sequence=C)
             fig_cs2.update_traces(marker_line_width=0,
                 hovertemplate='<b>%{x}</b><br>₹%{y:,.0f} avg LTV<extra></extra>')
-            fig_cs2.update_layout(**mk(height=300), showlegend=False, yaxis_tickprefix='₹',
-                xaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=9)))
+            _lay = mk(height=300)
+            _lay['xaxis']['tickfont'] = dict(size=9)
+            _lay['yaxis']['tickprefix'] = '₹'
+            fig_cs2.update_layout(**_lay, showlegend=False)
             st.plotly_chart(fig_cs2, use_container_width=True, config={'displayModeBar': False})
 
 # ════════════ TAB 4 ══════════════════════════════════════════
@@ -645,8 +650,9 @@ with t4:
                 color_continuous_scale=['#2a0a0a','#EF233C'])
             fig_cr.update_traces(marker_line_width=0,
                 hovertemplate='<b>%{y}</b><br>%{x:,} rides<extra></extra>')
-            fig_cr.update_layout(**mk(height=300), coloraxis_showscale=False,
-                yaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=10)))
+            _lay = mk(height=300)
+            _lay['yaxis']['tickfont'] = dict(size=10)
+            fig_cr.update_layout(**_lay, coloraxis_showscale=False)
             st.plotly_chart(fig_cr, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("No customer cancellation data in current filter")
@@ -659,8 +665,9 @@ with t4:
                 color_continuous_scale=['#2a1a0a','#FF6B35'])
             fig_dr.update_traces(marker_line_width=0,
                 hovertemplate='<b>%{y}</b><br>%{x:,} rides<extra></extra>')
-            fig_dr.update_layout(**mk(height=300), coloraxis_showscale=False,
-                yaxis=dict(gridcolor='#1a1a2a', color='#444466', tickfont=dict(size=10)))
+            _lay = mk(height=300)
+            _lay['yaxis']['tickfont'] = dict(size=10)
+            fig_dr.update_layout(**_lay, coloraxis_showscale=False)
             st.plotly_chart(fig_dr, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("No driver cancellation data in current filter")
