@@ -152,6 +152,13 @@ def mk(title="", height=340):
     )
 
 # ── LOAD DATA ───────────────────────────────────────────────
+import json
+
+@st.cache_data
+def load_locations():
+    with open("ncr_locations.json") as f:
+        return json.load(f)
+
 @st.cache_data
 def load():
     df = pd.read_csv("ncr_ride_bookings.csv")
@@ -218,7 +225,7 @@ st.markdown(f"**Showing {total:,} records** — Vehicle: `{sel_v}` | Status: `{s
 st.markdown("---")
 
 # ── TABS ────────────────────────────────────────────────────
-t1,t2,t3,t4,t5 = st.tabs(["📊 Overview","⏰ Time Analysis","🚗 Vehicles & Routes","❌ Cancellations","⭐ Ratings & Wait"])
+t1,t2,t3,t4,t5,t6 = st.tabs(["📊 Overview","⏰ Time Analysis","🚗 Vehicles & Routes","❌ Cancellations","⭐ Ratings & Wait","🗺️ Map View"])
 
 # ════════════ TAB 1 ══════════════════════════════════════════
 with t1:
@@ -593,3 +600,64 @@ with t5:
             Customer_Rating=('Customer Rating','mean')
         ).reset_index().round(2)
         st.dataframe(summary, use_container_width=True, hide_index=True)
+
+# ════════════ TAB 6 — MAP VIEW ═══════════════════════════════
+with t6:
+    st.markdown('<div class="section-label">PICKUP LOCATIONS MAP</div>', unsafe_allow_html=True)
+
+    locs = load_locations()
+
+    map_metric = st.radio("View by", ["Pickup Locations", "Drop Locations"],
+        horizontal=True, key="map_metric")
+
+    loc_col = 'Pickup Location' if map_metric == "Pickup Locations" else 'Drop Location'
+
+    if completed:
+        loc_stats = fd_c.groupby(loc_col).agg(
+            Rides=('Booking Value','count'),
+            Revenue=('Booking Value','sum'),
+            Avg_Fare=('Booking Value','mean')
+        ).reset_index()
+        loc_stats['lat'] = loc_stats[loc_col].map(lambda x: locs.get(x, (None,None))[0])
+        loc_stats['lon'] = loc_stats[loc_col].map(lambda x: locs.get(x, (None,None))[1])
+        loc_stats = loc_stats.dropna(subset=['lat','lon'])
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Locations Mapped", f"{len(loc_stats):,}")
+        col2.metric("Top Location", loc_stats.sort_values('Rides',ascending=False).iloc[0][loc_col] if len(loc_stats) else "—")
+        col3.metric("Total Mapped Rides", f"{loc_stats['Rides'].sum():,}")
+
+        st.markdown(f'<div class="chart-title">Ride Density — {map_metric}</div>', unsafe_allow_html=True)
+
+        fig_map = px.scatter_mapbox(
+            loc_stats, lat='lat', lon='lon',
+            size='Rides', color='Rides',
+            color_continuous_scale=['#1a1a3a','#1FBAD6','#06C167','#FFD166'],
+            size_max=35, zoom=8.5,
+            hover_name=loc_col,
+            hover_data={'Rides':True,'Revenue':':,.0f','Avg_Fare':':.0f','lat':False,'lon':False},
+            center=dict(lat=28.58, lon=77.22),
+            mapbox_style="carto-darkmatter"
+        )
+        fig_map.update_layout(
+            height=560,
+            paper_bgcolor='#0f1018',
+            plot_bgcolor='#0f1018',
+            margin=dict(t=10,b=10,l=10,r=10),
+            font=dict(color='#888899', family='Inter'),
+            coloraxis_colorbar=dict(
+                title=dict(text="Rides", font=dict(color='#888899')),
+                tickfont=dict(color='#888899'),
+                bgcolor='rgba(0,0,0,0)'
+            ),
+            hoverlabel=dict(bgcolor='#1a1a2e', bordercolor='#2a2a4a',
+                font=dict(color='white', size=12, family='Inter'))
+        )
+        st.plotly_chart(fig_map, use_container_width=True, config={'displayModeBar': False})
+
+        st.markdown('<div class="section-label">TOP 20 LOCATIONS BY RIDES</div>', unsafe_allow_html=True)
+        top_locs = loc_stats.sort_values('Rides', ascending=False).head(20)[
+            [loc_col,'Rides','Revenue','Avg_Fare']].round(2)
+        st.dataframe(top_locs, use_container_width=True, hide_index=True, height=420)
+    else:
+        st.info("No completed rides in current filter to display on map")
